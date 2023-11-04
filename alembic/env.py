@@ -10,6 +10,10 @@ from alembic import context
 from src.database import Base
 from src.users.models import User
 
+# Empty migration fix:
+# https://github.com/sqlalchemy/alembic/issues/712
+
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
