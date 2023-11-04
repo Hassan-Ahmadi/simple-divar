@@ -9,6 +9,7 @@ from alembic import context
 
 from src.database import Base
 from src.users.models import User
+from src.ads.models import AD
 
 # Empty migration fix:
 # https://github.com/sqlalchemy/alembic/issues/712
