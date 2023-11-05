@@ -15,26 +15,15 @@ class ADCreate(ADBase):
     owner_id: int
 
 
-# # Properties to receive on item update
-# class ItemUpdate(ItemBase):
-#     pass
+# Properties to receive on item update
+class ADUpdate(ADBase):
+    pass
 
 
-# Properties shared by models stored in DB
-class ADInDBBase(ADBase):
+# Properties to return to client
+class AD(ADBase):
     id: int
-    title: str
     owner_id: int
 
     class Config:
-        orm_mode = True
-
-
-# # Properties to return to client
-# class Item(ItemInDBBase):
-#     pass
-
-
-# # Properties properties stored in DB
-# class ItemInDB(ItemInDBBase):
-#     pass
+        from_attributes = True

@@ -17,6 +17,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     ads = relationship("AD", back_populates="owner")
+    comments = relationship("Comment", back_populates="user")
+
     
     created_at = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime, onupdate=text('CURRENT_TIMESTAMP'))
