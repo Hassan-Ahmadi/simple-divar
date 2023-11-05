@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
-from . import schemas, crud
+from . import schemas, crud, exceptions
 
 from ..users import crud as users_crud
 from ..ads import crud as ads_crud
@@ -22,7 +22,18 @@ async def create_comment(comment: schemas.CommentCreate, db: Session = Depends(g
     if db_ad is None:
         raise HTTPException(status_code=404, detail="Ad not found")
 
-    return crud.create_comment(db=db, comment=comment)
+    has_comment = crud.get_comment_by_user_id_ad_id(
+        db=db, user_id=comment.user_id, ad_id=comment.ad_id
+    )
+    if has_comment:
+        raise exceptions.CommentAlreadyExists()
+    else:
+        return crud.create_comment(db=db, comment=comment)
+
+
+@router.get("/", response_model=list[schemas.Comment])
+async def get_comments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_comments(db=db, skip=skip, limit=limit)
 
 
 @router.get("/{comment_id}", response_model=schemas.Comment)
@@ -48,11 +59,6 @@ async def update_comment(
     )
 
     return updated_comment
-
-
-@router.get("/", response_model=list[schemas.Comment])
-async def get_comments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_comments(db=db, skip=skip, limit=limit)
 
 
 @router.delete("/{comment_id}", response_model=schemas.Comment)
