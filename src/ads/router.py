@@ -2,16 +2,24 @@ from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from . import schemas, crud
 from ..users import crud as users_crud
+
+from ..users.authentication import get_current_active_user
+from ..users import schemas as user_schemas
+from typing import Annotated
+
 from ..database import get_db
 
 router = APIRouter()
 
 @router.post("/", response_model=schemas.AD, status_code=201)
-async def create_ad(ad: schemas.ADCreate, db: Session = Depends(get_db)):
-    db_user = users_crud.get_user(db=db, user_id=ad.owner_id)
+async def create_ad(ad: schemas.ADCreate, current_user: Annotated[
+        user_schemas.User, Depends(get_current_active_user)],
+        db: Session = Depends(get_db)):
+
+    db_user = users_crud.get_user(db=db, user_id=current_user.id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return crud.create_ad(db=db, ad=ad)
+    return crud.create_ad(db=db, ad=ad, owner_id=current_user.id)
 
 @router.get("/", response_model=list[schemas.AD])
 async def get_ads(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

@@ -1,15 +1,14 @@
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from typing import Annotated
-from fastapi.security import OAuth2PasswordBearer
+
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from typing import Annotated
 
 from . import schemas, crud, authentication, models
 from ..database import get_db
 
 router = APIRouter()
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 
 @router.post("/", response_model=schemas.User, status_code=201)
@@ -61,20 +60,26 @@ async def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 async def login_for_access_token(
-    user: schemas.UserLogin, db: Session = Depends(get_db)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Session = Depends(get_db),
 ):
     # Authenticate user
-    authenticated_user = authentication.authenticate_user(db, user)
+    authenticated_user = authentication.authenticate_user(
+        form_data.username, form_data.password, db
+    )
     if not authenticated_user:
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+        raise HTTPException(status_code=400, detail="Invalid username or password")
 
     # Create access token
-    access_token = authentication.create_access_token(data={"sub": user.username})
+    access_token = authentication.create_access_token(data={"sub": form_data.username})
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Protected route example
-@router.get("/protected", response_model=schemas.UserBase)
-async def   read_protected_data(user: schemas.UserBase = Depends(authentication.get_current_user)):
-    return user
-    
+
+@router.get("/me/", response_model=schemas.User)
+async def read_users_me(
+    current_user: Annotated[
+        schemas.User, Depends(authentication.get_current_active_user)
+    ]
+):
+    return current_user

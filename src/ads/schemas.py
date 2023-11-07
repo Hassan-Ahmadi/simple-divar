@@ -5,14 +5,13 @@ from pydantic import BaseModel
 
 # Shared properties
 class ADBase(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title: str
+    description: str | None = None
 
 
 # Properties to receive on item creation
 class ADCreate(ADBase):
-    title: str
-    owner_id: int
+    pass
 
 
 # Properties to receive on item update
