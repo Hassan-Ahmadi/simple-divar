@@ -60,3 +60,14 @@ class UserUpdate(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserLogin(UserBase):    
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(UserBase):
+    pass

@@ -20,4 +20,5 @@ class Comment(Base):
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     updated_at = Column(DateTime, onupdate=text("CURRENT_TIMESTAMP"))
 
-    __table_args__ = (UniqueConstraint('ad_id', 'user_id', name='unique_ad_user_comment'),)
+    __table_args__ = (
+        UniqueConstraint("ad_id", "user_id", name="unique_ad_user_comment"),)

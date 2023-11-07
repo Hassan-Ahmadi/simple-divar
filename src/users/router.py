@@ -1,10 +1,15 @@
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
-from . import schemas, crud
+from typing import Annotated
+from fastapi.security import OAuth2PasswordBearer
 
+from . import schemas, crud, authentication, models
 from ..database import get_db
 
 router = APIRouter()
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 @router.post("/", response_model=schemas.User, status_code=201)
@@ -52,3 +57,32 @@ async def delete_user(user_id: int, db: Session = Depends(get_db)):
     if db_user:
         return db_user
     raise HTTPException(status_code=404, detail="User not found")
+
+
+@router.post("/login", response_model=schemas.Token)
+async def login_for_access_token(
+    user: schemas.UserLogin, db: Session = Depends(get_db)
+):
+    # Authenticate user
+    authenticated_user = authentication.authenticate_user(db, user)
+    if not authenticated_user:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    # Create access token
+    access_token = authentication.create_access_token(data={"sub": user.email})
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# @router.get("/me", response_model=schemas.User)
+# def get_current_user_info(current_user = Depends(authentication.get_current_user)):
+#     # The "current_user" will contain the authenticated user.
+
+#     # You can simply return the user's details.
+#     return current_user
+
+
+# Protected route example
+@router.get("/protected")
+async def read_protected_data(current_user: str = Depends(oauth2_scheme)):
+    return {"message": "This is protected data for user: " + current_user}
