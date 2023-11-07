@@ -102,3 +102,5 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+current_user_dependency = Annotated[schemas.User, Depends(get_current_active_user)]

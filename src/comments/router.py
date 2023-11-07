@@ -2,6 +2,8 @@ from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from . import schemas, crud, exceptions
 
+from ..users.authentication import current_user_dependency
+
 from ..users import crud as users_crud
 from ..ads import crud as ads_crud
 
@@ -11,7 +13,11 @@ router = APIRouter()
 
 
 @router.post("/", response_model=schemas.Comment, status_code=201)
-async def create_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db)):
+async def create_comment(
+    comment: schemas.CommentCreate,
+    current_user: current_user_dependency,
+    db: Session = Depends(get_db),
+):
     # validate that user_id exists
     db_user = users_crud.get_user(db=db, user_id=comment.user_id)
     if db_user is None:
@@ -47,7 +53,10 @@ async def get_comment(comment_id: int, db: Session = Depends(get_db)):
 # This route accepts a Userupdate schema and returns a User schema
 @router.put("/{comment_id}", response_model=schemas.Comment)
 async def update_comment(
-    comment_id: int, comment_data: schemas.CommentUpdate, db: Session = Depends(get_db)
+    comment_id: int,
+    comment_data: schemas.CommentUpdate,
+    current_user: current_user_dependency,
+    db: Session = Depends(get_db),
 ):
     db_comment = crud.get_comment_by_id(db, comment_id=comment_id)
     if db_comment is None:
@@ -62,7 +71,11 @@ async def update_comment(
 
 
 @router.delete("/{comment_id}", response_model=schemas.Comment)
-async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
+async def delete_comment(
+    comment_id: int,
+    current_user: current_user_dependency,
+    db: Session = Depends(get_db),
+):
     db_comment = crud.delete_comment(db=db, comment_id=comment_id)
     if db_comment:
         return db_comment
