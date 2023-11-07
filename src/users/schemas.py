@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 
 class UserBase(BaseModel):
-    email: EmailStr = Field(
+    username: EmailStr = Field(
         ...,
         max_length=100,
         description="The email address of the user",
@@ -64,6 +64,9 @@ class UserUpdate(BaseModel):
 
 class UserLogin(UserBase):    
     password: str
+
+# class UserAuth(UserBase):
+#     id: int
 
 class Token(BaseModel):
     access_token: str

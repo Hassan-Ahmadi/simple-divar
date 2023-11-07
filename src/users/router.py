@@ -9,14 +9,14 @@ from ..database import get_db
 router = APIRouter()
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 
 @router.post("/", response_model=schemas.User, status_code=201)
 async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+    db_user = crud.get_user_by_username(db, username=user.username)
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email already registered!")
     return crud.create_user(db=db, user=user)
 
 
@@ -69,20 +69,12 @@ async def login_for_access_token(
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
     # Create access token
-    access_token = authentication.create_access_token(data={"sub": user.email})
+    access_token = authentication.create_access_token(data={"sub": user.username})
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-
-# @router.get("/me", response_model=schemas.User)
-# def get_current_user_info(current_user = Depends(authentication.get_current_user)):
-#     # The "current_user" will contain the authenticated user.
-
-#     # You can simply return the user's details.
-#     return current_user
-
-
 # Protected route example
-@router.get("/protected")
-async def read_protected_data(current_user: str = Depends(oauth2_scheme)):
-    return {"message": "This is protected data for user: " + current_user}
+@router.get("/protected", response_model=schemas.UserBase)
+async def   read_protected_data(user: schemas.UserBase = Depends(authentication.get_current_user)):
+    return user
+    

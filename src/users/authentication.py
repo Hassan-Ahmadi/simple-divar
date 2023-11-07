@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from jose import jwt, ExpiredSignatureError, JWTError
-
+from typing import Annotated
 from datetime import datetime, timedelta
 from decouple import config
 
@@ -36,82 +36,41 @@ def get_password_hash(password: str) -> str:
 
 # Function to authenticate a user
 def authenticate_user(db: Session, user: schemas.UserLogin):
-    user_db = db.query(models.User).filter(models.User.email == user.email).first()
+    user_db = db.query(models.User).filter(models.User.username == user.username).first()
     if not user_db:
         return None
-    if not verify_password(user.password, user_db.password):
+    if not verify_password(user.password, user_db.hashed_password):
         return None
     return user_db
 
-
-def extract_user_id_from_token(token):
-    try:
-        # Decode and verify the JWT token
-        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
-
-        # Extract the user ID from the token (assuming it's stored as 'sub')
-        user_id = payload.get("sub")
-
-        return user_id
-
-    # Handle token expiration error
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-
-    except JWTError as e:
-        raise HTTPException(
-            status_code=401, detail="Token verification failed: " + str(e)
-        )
-
-
-def get_user_by_token(token: str, db: Session):
-    # Implement token verification logic here
-    # This can involve decoding a JWT, validating an OAuth2 token, etc.
-
-    # If the token is valid, extract user identification information
-    user_id = extract_user_id_from_token(token)
-
-    # Query the database to fetch the user based on the extracted ID
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-
-    return user
-
-
-# def get_current_user(db: Session, token: str = Depends(oauth2_scheme)):
-#     user = get_user_by_token(token, db)
-#     if user is None:
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-#     return user
-
-def get_current_user( db: Session, token: str = Depends(oauth2_scheme)):
+def get_current_user( db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        username: str = payload.get("sub")
+        # user_id: str = payload.get("id")
+        if username is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        # token_data = db.query(models.User).filter(models.User.email==email).first()
-        # token_data = schemas.User(email=email)
+        # Fetch user data from the database based on the username
+        user = crud.get_user_by_username(db, username)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return user
+
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return crud.get_user_by_email(db, email)
-
-def get_current_active_user(db: Session, token: str = Depends(oauth2_scheme)):
-    user = get_user_by_token(token, db)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    else:
-        if not user.is_active:
-            raise HTTPException(status_code=403, detail="Inactive user")
-    return user
-
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
